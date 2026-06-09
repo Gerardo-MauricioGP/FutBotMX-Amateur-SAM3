@@ -4,50 +4,58 @@ Copa FutBotMX 2026 - Reto de Visión por Computadora
 
 # Descripción del Proyecto
 	
-	Este repositorio contiene nuestra entrega oficial para la Copa FutBotMX. Nuestro proyecto utiliza el Segment Anything Model 3 (SAM 3) de Meta para segmentar, rastrear y analizar de forma automatizada los partidos de fútbol robótico.
+Este repositorio contiene nuestra entrega oficial para la Copa FutBotMX. Nuestro proyecto utiliza el Segment Anything Model 3 (SAM 3) de Meta para segmentar, rastrear y analizar de forma automatizada los partidos de fútbol robótico.
 	
-	El objetivo principal es aplicar conceptos de visión por computadora para identificar el balón y los robots, generando estadísticas útiles y una narrativa visual del juego.
+El objetivo principal es aplicar conceptos de visión por computadora para identificar el balón y los robots, generando estadísticas útiles y una narrativa visual del juego.
 
 # Enfoque y Arquitectura
 	
-	Nuestra solución está diseñada mediante el siguiente flujo de trabajo:
-	1. Detección y Segmentación (SAM 3): Utilizamos comandos y prompts) para indicarle al modelo cómo identificar de manera precisa a los robots y el balón en el campo de juego.
-	2. Seguimiento Visual (OpenCV): Implementamos OpenCV para dibujar cajas delimitadoras alrededor de los elementos detectados, permitiendo visualizar su trayectoria a lo largo de los fotogramas del video.
-	3. Análisis de Datos y Estadísticas: Desarrollamos una lógica de seguimiento que no solo observa el movimiento, sino que también clasifica a los robots por equipo y contabiliza métricas clave del partido, tales como:
-	•	Número total de pases.
-	•	Conteo de goles.
-	•	Separación de estadísticas por equipo.
+Nuestra solución está diseñada mediante el siguiente flujo de trabajo:
+
+1. Detección y Segmentación (SAM 3): Utilizamos comandos y prompts) para indicarle al modelo cómo identificar de manera precisa a los robots y el balón en el campo de juego.
+	
+2. Seguimiento Visual (OpenCV): Implementamos OpenCV para dibujar cajas delimitadoras alrededor de los elementos detectados, permitiendo visualizar su trayectoria a lo largo de los fotogramas del video.
+	
+3. Análisis de Datos y Estadísticas: Desarrollamos una lógica de seguimiento que no solo observa el movimiento, sino que también clasifica a los robots por equipo y contabiliza métricas clave del partido, tales como:
+	
+   •	Número total de pases.
+
+   •	Conteo de goles.
+	
+   •	Separación de estadísticas por equipo.
 
 
-https://github.com/user-attachments/assets/9900c65c-7f39-451b-a54a-a1a89ceafcd2
+
+https://github.com/user-attachments/assets/6ea09b3c-5034-44bd-be81-093d024f408c
+
 
 
 # Requisitos de Hardware y Software
 
-	Este proyecto fue desarrollado y optimizado para ejecutarse en la nube.
+Este proyecto fue desarrollado y optimizado para ejecutarse en la nube.
 	
-	• Entorno: Google Colab
+• Entorno: Google Colab
 	
-	• Hardware: GPU NVIDIA T4
+• Hardware: GPU NVIDIA T4
 	
-	• Versión de Python: 3.10+
+• Versión de Python: 3.10+
 
 # Dependencias Principales:
 
-	`torch` y `torchvision` (Requeridos para ejecutar el modelo SAM 3)
+  `torch` y `torchvision` (Requeridos para ejecutar el modelo SAM 3)
 
-	`opencv-python` (Requeridos para ejecutar el modelo SAM 3)
+  `opencv-python` (Requeridos para ejecutar el modelo SAM 3)
+ 
+  `numpy`
 
-	`numpy`
+  `Sam3` (Repositorio oficial de Meta)
 
-	`sam3` (Repositorio oficial de Meta)
+# Instrucciones de Instalación y Reproducción 
 
-# Instrucciones de Instalación y Reproducción
+# Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
 
-Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
-	1. Clonar el repositorio:
-	
- ```bash git
+1. Clonar el repositorio:
+   ```bash git
    clone  https://colab.research.google.com/drive/1UrF0WutbZuiNGDLzT8S2aRW3u8OyqIDc?usp=sharing https://colab.research.google.com/drive/1euw_ejfaQBKeaXIYLDEllAd_hDxm09-k?usp=sharing
  
  cd futbotmx-sam3
