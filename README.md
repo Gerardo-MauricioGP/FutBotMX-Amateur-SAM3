@@ -71,7 +71,7 @@ https://github.com/user-attachments/assets/6ea09b3c-5034-44bd-be81-093d024f408c
     * **Solución:** Se movió la inicialización de la IA a la cabecera del script principal. Esto permitió cargar el modelo pesado en la memoria RAM una sola vez, dejándolo suspendido e inactivo para ser reutilizado instantáneamente por todos los lotes posteriores.
 
 12. **Mezcla de archivos residuales:** El entorno virtual interactivo a veces conservaba imágenes de ejecuciones de pruebas anteriores. Esto causaba que los nuevos fotogramas se mezclaran con resoluciones distintas de otras pruebas, generando conflictos y datos corruptos para la IA.
-    * **Solución:** Se inyectó un comando destructivo de terminal de Linux (`!rm -rf {ruta_directorio}/*`) en el bloque inicial. Al ejecutarlo antes de la extracción de FFmpeg, se garantizó un lienzo de carpetas completamente limpio y sin archivos residuales.
+    * **Solución:** Se inyectó un comando destructivo de la terminal de Linux (`!rm -rf {ruta_directorio}/*`) en el bloque inicial. Al ejecutarlo antes de la extracción de FFmpeg, se garantizó un lienzo de carpetas completamente limpio y sin archivos residuales.
 
 ---
 
@@ -93,7 +93,7 @@ Analizar el video a una alta tasa de fotogramas exigía un nivel de procesamient
 17. **Caída del script por formato de datos (AttributeError):** De manera impredecible, las salidas de la API alternaban entre devolver datos matemáticos en formato de GPU (Tensores) y formato crudo de CPU (NumPy). Cuando el código asumía el formato incorrecto, el programa colapsaba violentamente al aplicar funciones incompatibles.
     * **Solución:** Se añadió una validación condicional dinámica en el código utilizando `if torch.is_tensor()`. Esto aseguró que las conversiones matemáticas de formato solo se aplicaran si los datos estaban realmente alojados en la tarjeta gráfica.
 
-18. **Riesgo de descalificación por reglas de competencia:** La integración de sistemas avanzados de rastreo externo (como DeepSORT o ByteTrack) para agilizar el proceso de video suponía un gran riesgo. El reglamento de la "Categoría Amateur" prohibía estrictamente el uso de redes neuronales secundarias para asistir el análisis, arriesgando la descalificación.
+18. **Riesgo de descalificación por reglas de competencia:** La integración de sistemas avanzados de rastreo externo (como DeepSORT o ByteTrack) para agilizar el proceso de video suponía un gran riesgo. El reglamento de la "Categoría Amateur" prohibía estrictamente el uso de redes neuronales secundarias para asistir en el análisis, arriesgando la descalificación.
     * **Solución:** Se purgaron por completo todas las redes secundarias y librerías de seguimiento externas de terceros. El proyecto se limitó a utilizar exclusivamente la inferencia nativa de SAM 3 combinada con matemáticas de álgebra básica permitidas en la categoría.
 
 ---
@@ -120,17 +120,26 @@ Analizar el video a una alta tasa de fotogramas exigía un nivel de procesamient
     * **Solución:** Se normalizaron los identificadores en tiempo real mediante una fórmula matemática sencilla, restando su valor mínimo de rastreo (`tracker_id - np.min(tracker_id)`). Esto garantizó que la numeración siempre se reiniciara a 0, 1 y 2 de forma consistente.
 
 24. **Falta de registro en colisiones de gol:** A nivel matemático, la máscara 2D generada para el balón a veces resultaba demasiado pequeña o ajustada al contorno. Esto causaba que no se cruzara con los suficientes píxeles del área de la portería, impidiendo que el motor de físicas registrara un gol legítimo.
-    * **Solución:** Se aplicó una operación morfológica de visión computacional expansiva llamada "Dilatación" (`cv2.dilate`). Esto engordó artificialmente la máscara del balón con píxeles extra, haciendo que el cálculo de choque fuera hiper-sensible y detectara el gol certeramente.
+    * **Solución:** Se aplicó una operación morfológica de visión computacional expansiva llamada "Dilatación" (`cv2.dilate`). Esto engordó artificialmente la máscara del balón con píxeles extra, haciendo que el cálculo de choque fuera hipersensible y detectara el gol certeramente.
 
 25. **Generación de telemetría sin coordenadas exactas:** El modelo SAM 3 no está diseñado para devolver puntos centrales exactos (coordenadas X, Y), sino que devuelve matrices gigantes con siluetas amorfas de los objetos. Esto hacía imposible generar de forma automatizada la telemetría de movimiento o los mapas de calor requeridos.
     * **Solución:** Se programó una función geométrica a medida usando los métodos de array `np.mean` y `np.where`. Esto permitió calcular de manera matemática el Centro de Masa absoluto de cada silueta, convirtiéndola en un punto coordenado puntual perfecto para la telemetría.
 
 26. **Inestabilidad por máscaras fragmentadas:** En los cruces corporales intensos durante el partido, cuando un robot tapaba parcialmente a otro, la IA devolvía siluetas fragmentadas o cortadas a la mitad. Esto provocaba que las cajas delimitadoras clásicas temblaran violentamente o cambiaran de tamaño erráticamente en el video final.
-    * **Solución:** El cálculo matemático del "Centro de Masa" logró estabilizar de forma natural las referencias visuales. Al ser un promedio aritmético de todos los píxeles, el punto central del rastreo no saltaba repentantemente aunque la silueta del robot estuviera incompleta por la oclusión.
+    * **Solución:** El cálculo matemático del "Centro de Masa" logró estabilizar de forma natural las referencias visuales. Al ser un promedio aritmético de todos los píxeles, el punto central del rastreo no saltaba repentinamente aunque la silueta del robot estuviera incompleta por la oclusión.
 
 27. **Caídas del script por divisiones entre cero:** Cuando el balón o un objeto salía temporalmente de la cámara, el sistema reportaba correctamente una matriz vacía. Sin embargo, intentar calcular el centroide matemático de una matriz inexistente generaba un error fatal por división entre cero (`NaN`), cerrando abruptamente el programa en plena generación del video.
-    * **Solución:** Se protegió todo el bloque de operaciones matemáticas con una compuerta condicional de validación estricta (`if len(indices_x) > 0`). Esto aseguró que la geometría de colisión solo se calculara si se comprobaba previamente la existencia de píxeles válidos en la pantalla.
+    * **Solución:** Se protegió todo el bloque de operaciones matemáticas con una compuerta condicional de validación estricta (`if len(indices_x) > 0`). Esto aseguró que la geometría de colisión solo se calculara si previamente se comprobaba la existencia de píxeles válidos en la pantalla.
+   
+28. Falsos positivos continuos en el conteo de toques de balón: Al registrar las interacciones mediante la simple intersección de máscaras binarias, el sistema sumaba decenas de toques por segundo si un robot simplemente se quedaba parado junto al balón o lo conducía, inflando el marcador de forma irreal.
+    * **Solución:** Se implementó una lógica de validación por "estado y movimiento". Primero, se estableció un umbral de desplazamiento matemático (`MOVEMENT_THRESHOLD`) para registrar un toque únicamente si el balón presentaba un movimiento físico real. Segundo, se creó un conjunto en memoria (`set`) para llevar el registro exacto de qué robot mantenía el contacto, evitando sumar puntos duplicados por un solo choque continuado.
 
+29. Conteo múltiple de goles en una sola anotación: Debido a que el cálculo de solapamiento (Intersection over Union o IoU) entre el balón y la portería se evalúa cuadro por cuadro, el sistema sumaba un gol nuevo en cada fotograma mientras el balón permaneciera físicamente dentro de la red, rompiendo el marcador.
+    * **Solución:** Se implementó un control de estado temporal utilizando la variable `ball_in_rectangle_prev_frame`. Esta memoria a corto plazo permite que el código compare el estado del fotograma actual con el anterior, asegurando que el evento de "Gol" se contabilice de forma única y bloqueando sumas adicionales mientras el balón siga dentro del área.
+
+30. Superposición y nula legibilidad de los marcadores en pantalla: Al intentar dibujar los textos de los puntajes directamente sobre el video, los colores cambiantes de la cancha y los robots camuflaban las letras. Además, al cambiar las dimensiones del video, los textos quedaban desalineados, amontonados o fuera de la pantalla.
+    * **Solución:** Se programó un sistema de visualización dinámica (Scoreboard). Para la legibilidad, se usó la función `getTextSize` para crear cajas de fondo negro opaco (`cv2.rectangle`) que se ajustan automáticamente a lo largo del texto. Para el posicionamiento, las coordenadas se calcularon algebraicamente en base a la resolución del video (usando un `y_offset` para apilar marcadores individuales sin chocar, y fracciones del ancho `w` para mantener el marcador global perfectamente centrado).
+   
 
 # Requisitos de Hardware y Software
 
