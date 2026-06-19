@@ -167,7 +167,7 @@ Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
 
 1. Clonar el repositorio:
    ```bash git
-   clone  https://colab.research.google.com/drive/1UrF0WutbZuiNGDLzT8S2aRW3u8OyqIDc?usp=sharing https://colab.research.google.com/drive/1euw_ejfaQBKeaXIYLDEllAd_hDxm09-k?usp=sharing
+   clone  https://colab.research.google.com/github/Gerardo-MauricioGP/Proyecto_SAM3/blob/main/Proyecto_SAM3_V3_0.ipynb
  
  cd futbotmx-sam3
 
@@ -176,8 +176,3 @@ Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
 ![Python](https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=ffdd54) ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=flat&logo=numpy&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=flat&logo=github&logoColor=white)
 
 
-# Proyecto_SAM3
-#Primer copia del proyecto en GitHub 
-#Aqui se va a crear la documentacion
-https://colab.research.google.com/drive/1UrF0WutbZuiNGDLzT8S2aRW3u8OyqIDc?usp=sharing
-https://colab.research.google.com/drive/1euw_ejfaQBKeaXIYLDEllAd_hDxm09-k?usp=sharing
