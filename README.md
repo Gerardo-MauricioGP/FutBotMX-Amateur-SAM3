@@ -25,7 +25,7 @@ Nuestra solución está diseñada mediante el siguiente flujo de trabajo:
 	
    •	Separación de estadísticas por equipo.
 
-### 🎥 Video de Prueba del Sistema
+### Video de Prueba del Sistema
 
 Para visualizar el funcionamiento del arbitraje automatizado en tiempo real, hemos integrado el siguiente clip de demostración:
 
@@ -57,14 +57,22 @@ Al extraer matemáticamente el "Centro de Masa" de las siluetas amorfas generada
 https://github.com/user-attachments/assets/ac0f7df8-2393-4226-8c3c-c43423b1ae10
 
 
-## 📡 Radar de Posicionamiento y Telemetría
+## Radar de Posicionamiento y Telemetría
 Además de los mapas de calor, implementamos un **Radar de telemetría en tiempo real**. Este componente proyecta la posición relativa de los robots y el balón en un plano 2D simplificado, eliminando el ruido visual de la cancha real. Esto nos permite observar la distribución espacial de los equipos y la dirección de juego con una precisión técnica superior, facilitando el análisis táctico automatizado.
 
 
 
 https://github.com/user-attachments/assets/5adf93ff-818e-44f9-8df7-4081ee024a8c
 
+## Demostración en Instagram
 
+Para ver el sistema en acción con un formato más dinámico y rápido, puedes revisar nuestro clip donde mostramos el rendimiento de la IA y el seguimiento de los robots en tiempo real:
+
+<div align="center">
+  <a href="https://www.instagram.com/reel/DZxuDYQgvVF/?igsh=MTUzeW53YjgyOGY2aA==" target="_blank">
+    <img src="https://img.shields.io/badge/Video_de_Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Botón de Instagram" />
+  </a>
+</div>
 
 # Informe Técnico: Optimización y Resolución de Problemas 
 
