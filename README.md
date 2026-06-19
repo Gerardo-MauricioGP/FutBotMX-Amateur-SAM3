@@ -233,8 +233,7 @@ Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
 1. Apertura directa
 Puedes abrir y ejecutar nuestro proyecto directamente en la nube sin descargar nada haciendo clic aquí:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Gerardo-MauricioGP/FutBotMX-Amateur-SAM3/blob/main/Proyecto_SAM3_V3_0.ipynb)
- cd futbotmx-sam3
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Gerardo-MauricioGP/FutBotMX-Amateur-SAM3/blob/main/FutBotMX_Final.ipynb)
 
 **Ejecución Automática en la Nube:**
    * **Entorno:** Sube o abre el archivo `FutBotMX-Amateur-SAM3` en Google Colab.
