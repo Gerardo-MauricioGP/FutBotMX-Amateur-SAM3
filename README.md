@@ -25,6 +25,16 @@ Nuestra solución está diseñada mediante el siguiente flujo de trabajo:
 	
    •	Separación de estadísticas por equipo.
 
+### 🎥 Video de Prueba del Sistema
+
+Para visualizar el funcionamiento del arbitraje automatizado en tiempo real, hemos integrado el siguiente clip de demostración:
+
+
+<img width="400" height="450" alt="Ejemplo 1" src="https://github.com/user-attachments/assets/cbdd85cc-e5de-4ddd-8106-c8893315299a" /> <img width="400" height="450" alt="Ejemplo 2" src="https://github.com/user-attachments/assets/8799fd2c-e0a6-45cb-83c9-2c2b67098e37" />
+
+
+
+---
 
 
 ##  Demostración del Sistema y Arbitraje
@@ -45,6 +55,14 @@ Al extraer matemáticamente el "Centro de Masa" de las siluetas amorfas generada
 
 
 https://github.com/user-attachments/assets/ac0f7df8-2393-4226-8c3c-c43423b1ae10
+
+
+## 📡 Radar de Posicionamiento y Telemetría
+Además de los mapas de calor, implementamos un **Radar de telemetría en tiempo real**. Este componente proyecta la posición relativa de los robots y el balón en un plano 2D simplificado, eliminando el ruido visual de la cancha real. Esto nos permite observar la distribución espacial de los equipos y la dirección de juego con una precisión técnica superior, facilitando el análisis táctico automatizado.
+
+
+
+https://github.com/user-attachments/assets/5adf93ff-818e-44f9-8df7-4081ee024a8c
 
 
 
