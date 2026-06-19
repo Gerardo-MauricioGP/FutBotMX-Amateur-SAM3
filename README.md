@@ -2,6 +2,7 @@ Copa FutBotMX 2026 - Reto de Visión por Computadora
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+
 # Descripción del Proyecto
 	
 Este repositorio contiene nuestra entrega oficial para la Copa FutBotMX. Nuestro proyecto utiliza el Segment Anything Model 3 (SAM 3) de Meta para segmentar, rastrear y analizar de forma automatizada los partidos de fútbol robótico.
@@ -209,11 +210,22 @@ Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
    ```
  cd futbotmx-sam3
 
- **Ejecución del Entorno:**
-   * Sube o abre el archivo `Proyecto_SAM3_V3_0.ipynb` en Google Colab.
-   * Ve a `Entorno de ejecución` > `Cambiar tipo de entorno de ejecución` y asegúrate de seleccionar **GPU (T4)**.
-   * Ejecuta las celdas en orden secuencial. El script te pedirá subir el video de entrada y automáticamente comenzará el preprocesamiento, análisis e inferencia.
+**Ejecución Automática en la Nube:**
+   * **Entorno:** Sube o abre el archivo `FutBotMX-Amateur-SAM3` en Google Colab.
+   * **Configuración:** Ve a `Entorno de ejecución` > `Cambiar tipo de entorno de ejecución` y asegúrate de seleccionar **GPU (T4)**.
+   * **Secuencia:** Ejecuta las celdas en orden secuencial.
+   * **Validación de seguridad:** Durante la ejecución, el sistema buscará el token de acceso en la nube. Si no lo detecta automáticamente, desplegará un cuadro de texto pidiéndote que ingreses el token.
+   * **Procesamiento:** Una vez validado, el script comenzará de inmediato el preprocesamiento, análisis e inferencia de los mapas y marcadores.
 
+
+## Equipo de Desarrollo
+
+Este proyecto fue desarrollado para la **Copa FutBotMX 2026** por el equipo:
+
+* **Alan Eduardo López Escobedo**
+* **Carlos Gabriel Caamal Magaña**
+* **Rylan Transito Chan**
+* **Gerardo Mauricio Galván Pablo**
 
 # Tech Stack:
 ![Python](https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=ffdd54) ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=flat&logo=numpy&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=flat&logo=github&logoColor=white)
