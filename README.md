@@ -26,119 +26,157 @@ Nuestra solución está diseñada mediante el siguiente flujo de trabajo:
 
 
 
-https://github.com/user-attachments/assets/6ea09b3c-5034-44bd-be81-093d024f408c
+##  Demostración del Sistema y Arbitraje
+
+Conseguir este nivel de rastreo fluido requirió superar múltiples limitantes de hardware y software. Para renderizar este video, nuestro script segmenta el video original en lotes, limpiando la memoria VRAM de la GPU fotograma por fotograma. Utilizamos la inferencia nativa de **SAM 3** combinada con dilatación morfológica de máscaras en **OpenCV** para garantizar que los choques entre el balón y los robots sean hiper-sensibles, logrando un arbitraje automatizado preciso, libre de falsos positivos y con un rendimiento estable
+
+
+
+https://github.com/user-attachments/assets/0025f9e9-4d9f-4d71-8366-d9a50e1b1724
+
+
+
+
+##  Generación de Mapas de Calor (Heatmaps) y Telemetría
+Al extraer matemáticamente el "Centro de Masa" de las siluetas amorfas generadas por la IA, el sistema logra exportar coordenadas X/Y precisas. Esto permite generar mapas de calor dinámicos para analizar el posicionamiento y el flujo del partido en tiempo real:
+
+
+
+
+https://github.com/user-attachments/assets/ac0f7df8-2393-4226-8c3c-c43423b1ae10
+
 
 
 # Informe Técnico: Optimización y Resolución de Problemas 
 
-## Gestión de Memoria Gráfica (VRAM) y Rendimiento de Hardware
+### Gestión de Memoria Gráfica (VRAM) y Rendimiento de Hardware
 
-1. **Saturación de VRAM y acumulación de datos:** El modelo SAM 3 generaba una cantidad enorme de información interna por cada fotograma analizado. Mantener todos estos datos acumulados de forma permanente saturaba rápidamente la memoria de la tarjeta gráfica (VRAM). Esto provocaba ralentizaciones severas y el congelamiento total del sistema durante los videos largos.
-   * **Solución:** Se implementó una extracción manual de datos fuera de la tarjeta gráfica utilizando el comando `.cpu().numpy()` para trasladar las matrices a la RAM del ordenador. Además, se aplicó una limpieza agresiva mediante `torch.cuda.empty_cache()` para borrar los cálculos intermedios fotograma por fotograma.
+**1. Saturación de VRAM y acumulación de datos:** Nos enfrentamos a que el modelo SAM 3 generaba una cantidad enorme de información interna por cada fotograma analizado. Mantener todos estos datos acumulados de forma permanente saturaba rápidamente la memoria de nuestra tarjeta gráfica (VRAM), lo que nos provocaba ralentizaciones severas y el congelamiento total del sistema durante los videos largos.
+   * **Solución:** Implementamos una extracción manual de datos fuera de la tarjeta gráfica utilizando el comando `.cpu().numpy()` para trasladar las matrices a la RAM del ordenador. Además, aplicamos una limpieza agresiva mediante `torch.cuda.empty_cache()` para borrar los cálculos intermedios fotograma por fotograma.
 
-2. **Fugas de memoria y enlaces residuales (Ghost Links):** A pesar de las limpiezas básicas, el sistema dejaba procesos muertos y enlaces invisibles conectados a la GPU tras procesar cada bloque de imágenes. Esta fuga de memoria asfixiaba progresivamente y de forma indetectable la tarjeta gráfica, provocando el colapso del sistema en el Lote 12.
-   * **Solución:** Se aplicó una desconexión matemática estricta a nivel de código mediante `.detach().clone().cpu()` para cortar cualquier enlace residual. Esto se complementó con una secuencia de destrucción total de variables (usando `del` y `gc.collect()`) al finalizar cada lote procesado.
+**2. Fugas de memoria y enlaces residuales (Ghost Links):** A pesar de nuestras limpiezas básicas, notamos que el sistema dejaba procesos muertos y enlaces invisibles conectados a la GPU tras procesar cada bloque de imágenes. Esta fuga de memoria asfixiaba progresivamente nuestra tarjeta gráfica, provocando el colapso del sistema al llegar al Lote 12.
+   * **Solución:** Aplicamos una desconexión matemática estricta a nivel de código mediante `.detach().clone().cpu()` para cortar cualquier enlace residual. Esto lo complementamos con una secuencia de destrucción total de variables (usando `del` y `gc.collect()`) al finalizar cada lote procesado.
 
-3. **Acumulación de sesiones huérfanas en VRAM:** Cada vez que el modelo inicializaba el análisis de un nuevo lote mediante el comando `start_session`, reservaba un bloque de memoria de aproximadamente 570 MB. Al terminar el lote, esta sesión no se autodestruía, llenando la memoria silenciosamente hasta agotar el espacio disponible.
-   * **Solución:** Se inyectó el comando inverso `reset_session` explícitamente al finalizar el bucle de cada lote. Esto destruyó el estado interno de la IA y devolvió la memoria bloqueada a la reserva principal de la tarjeta gráfica.
+**3. Acumulación de sesiones huérfanas en VRAM:** Descubrimos que cada vez que inicializábamos el análisis de un nuevo lote mediante el comando `start_session`, el modelo reservaba un bloque de memoria de aproximadamente 570 MB. Al terminar el lote, esta sesión no se autodestruía, llenando nuestra memoria silenciosamente.
+   * **Solución:** Inyectamos el comando inverso `reset_session` explícitamente al finalizar el bucle de cada lote. Con esto destruimos el estado interno de la IA y logramos devolver la memoria bloqueada a la reserva principal de la tarjeta gráfica.
 
-4. **Fragmentación de memoria inicial (CUDA Out of Memory):** La acción de borrar y crear variables constantemente provocaba que la memoria gráfica se fragmentara en huecos pequeños e inutilizables. Esta desorganización causaba errores críticos de "Memoria Insuficiente" (OOM) antes de siquiera empezar a analizar el video a profundidad.
-   * **Solución:** Se configuró la variable de entorno especial `expandable_segments:True` en la inicialización del entorno. Esto instruyó al asignador de memoria de PyTorch a agrupar los datos en segmentos dinámicos, evitando los huecos y previniendo las caídas del sistema.
+**4. Fragmentación de memoria inicial (CUDA Out of Memory):** Observamos que la acción de borrar y crear variables constantemente provocaba que nuestra memoria gráfica se fragmentara en huecos pequeños e inutilizables, causándonos errores críticos de "Memoria Insuficiente" (OOM) antes de siquiera empezar a analizar el video.
+   * **Solución:** Configuramos la variable de entorno especial `expandable_segments:True` en la inicialización de nuestro entorno. Esto instruyó al asignador de memoria de PyTorch a agrupar los datos en segmentos dinámicos, evitando los huecos y previniendo las caídas.
 
-5. **Carga matemática excesiva en 32 bits:** Operar el modelo de inteligencia artificial en precisión matemática estándar de 32 bits requería demasiados recursos. Este nivel de detalle excedía por completo la capacidad física de la memoria de video disponible para procesar múltiples imágenes de manera fluida.
-   * **Solución:** Se implementó la técnica de "Inferencia de Precisión Mixta" utilizando `torch.autocast(dtype=torch.float16)`. Esto obligó a la tarjeta gráfica a procesar las matrices matemáticas pesadas en 16 bits, reduciendo el consumo a la mitad sin que la IA perdiera su capacidad de segmentación.
+**5. Carga matemática excesiva en 32 bits:** Operar el modelo de inteligencia artificial en precisión matemática estándar de 32 bits nos exigía demasiados recursos, excediendo por completo la capacidad física de nuestra memoria de video.
+   * **Solución:** Implementamos la técnica de "Inferencia de Precisión Mixta" utilizando `torch.autocast(dtype=torch.float16)`. Esto obligó a la tarjeta gráfica a procesar las matrices matemáticas pesadas en 16 bits, reduciendo nuestro consumo a la mitad sin perder capacidad de segmentación.
 
-6. **Estrangulamiento térmico (Thermal Throttling):** Tras 15 minutos continuos de trabajo al 100% de su capacidad, la tarjeta gráfica se sobrecalentaba peligrosamente. Para evitar daños físicos en el silicio, el hardware reducía automáticamente su velocidad de procesamiento en el servidor.
-   * **Solución:** Se aceptó esta limitación física de hardware ineludible como parte del proceso. Se asumió un mayor tiempo de renderizado (aumentando de 14 a 22 minutos) a cambio de priorizar y garantizar la estabilidad final del análisis.
+**6. Estrangulamiento térmico (Thermal Throttling):** Tras 15 minutos continuos de trabajo al 100% de su capacidad, nuestra tarjeta gráfica se sobrecalentaba peligrosamente. Para evitar daños físicos, el hardware reducía automáticamente su velocidad de procesamiento.
+   * **Solución:** Aceptamos esta limitación física de hardware como parte del proceso. Decidimos asumir un mayor tiempo de renderizado (aumentando de 14 a 22 minutos) a cambio de priorizar y garantizar la estabilidad final de nuestro análisis.
 
-7. **Cuello de botella en la transferencia de datos (PCIe):** Transferir datos constantemente desde la tarjeta gráfica hacia la RAM del sistema exigía utilizar los carriles de la placa base. Este viaje físico de la información generaba micro-latencias que se acumulaban fotograma tras fotograma.
-   * **Solución:** Se asumió este retardo acumulativo como un peaje de rendimiento estrictamente necesario para el proyecto. La única alternativa era mantener los datos en la GPU, lo cual desembocaba irremediablemente en un colapso total de la memoria.
-
----
-
-## Optimización de RAM y Procesamiento de Video
-
-8. **Colapso de RAM por carga en alta calidad:** Intentar decodificar y cargar el archivo de video completo en alta resolución (1080p) desde el inicio era demasiado pesado para el sistema. Esta acción saturaba los 12.6 GB de RAM del entorno de forma instantánea, provocando cierres abruptos y fallos del servidor.
-   * **Solución:** Se implementó una estrategia de "Carga Diferida" (Lazy Loading) mediante FFmpeg para extraer fotogramas individuales previamente. De esta manera, el entorno de Python únicamente cargaba en la memoria principal una sola matriz de imagen a la vez.
-
-9. **Saturación de RAM por peso acumulado:** A pesar de la carga diferida, el peso acumulado del historial de las imágenes seguía ahogando la RAM poco a poco. En secuencias de video largas, la memoria del sistema terminaba colapsando irremediablemente por el exceso de metadatos retenidos.
-   * **Solución:** Se implementó el sistema de "Procesamiento por Lotes" (Video Chunking) para dividir las cargas de trabajo. El video se dividió en carpetas aisladas de 100 a 500 imágenes que se procesaban de forma independiente, purgando la RAM al terminar cada bloque.
-
-10. **Retención de memoria inactiva por el sistema operativo:** El sistema operativo Linux (utilizado en Google Colab) mantenía en su caché profunda la memoria que Python ya había liberado. Esta desincronización provocaba falsos errores de memoria llena que detenían la ejecución del análisis.
-    * **Solución:** Se utilizó el comando de bajo nivel `libc.malloc_trim(0)` a través de la librería `ctypes` de Python. Esto saltó las restricciones del lenguaje de programación y forzó directamente al núcleo de Linux a devolver la memoria inactiva a la reserva central.
-
-11. **Recarga ineficiente del modelo de IA:** Inicializar el pesado modelo de la red neuronal dentro del ciclo de procesamiento por lotes creaba un cuello de botella masivo. Obligaba al disco duro a leer gigabytes de datos repetidamente por cada subcarpeta procesada, ralentizando todo el flujo de trabajo.
-    * **Solución:** Se movió la inicialización de la IA a la cabecera del script principal. Esto permitió cargar el modelo pesado en la memoria RAM una sola vez, dejándolo suspendido e inactivo para ser reutilizado instantáneamente por todos los lotes posteriores.
-
-12. **Mezcla de archivos residuales:** El entorno virtual interactivo a veces conservaba imágenes de ejecuciones de pruebas anteriores. Esto causaba que los nuevos fotogramas se mezclaran con resoluciones distintas de otras pruebas, generando conflictos y datos corruptos para la IA.
-    * **Solución:** Se inyectó un comando destructivo de la terminal de Linux (`!rm -rf {ruta_directorio}/*`) en el bloque inicial. Al ejecutarlo antes de la extracción de FFmpeg, se garantizó un lienzo de carpetas completamente limpio y sin archivos residuales.
+**7. Cuello de botella en la transferencia de datos (PCIe):** Transferir datos constantemente desde la tarjeta gráfica hacia la RAM del sistema nos exigía utilizar los carriles de la placa base, generando micro-latencias que se acumulaban fotograma tras fotograma.
+   * **Solución:** Asumimos este retardo acumulativo como un peaje de rendimiento estrictamente necesario para nuestro proyecto. Comprendimos que la única alternativa era mantener los datos en la GPU, lo cual nos llevaba irremediablemente a un colapso total de la memoria.
 
 ---
 
-## Lógica de Rastreo e Inteligencia Artificial
+### Optimización de RAM y Procesamiento de Video
 
-13. **Inexactitud de rastreadores tradicionales:** En un intento por ahorrar memoria gráfica, se utilizaron algoritmos clásicos de seguimiento (como CSRT y MIL) para predecir el movimiento. Estos rastreadores fracasaron totalmente al confundir a los robots o perder el balón cuando se cruzaban rápidamente en la pantalla.
-    * **Solución:** Se descartaron por completo las opciones tradicionales para priorizar la exactitud sobre la velocidad. Se le otorgó el control total a la IA (SAM 3) para evaluar cada fotograma, basándose en su comprensión semántica para no perder el rastro durante las oclusiones.
+**8. Colapso de RAM por carga en alta calidad:** Intentar decodificar y cargar el archivo de video completo en alta resolución (1080p) desde el inicio resultó ser demasiado pesado. Esta acción saturaba nuestros 12.6 GB de RAM de forma instantánea, provocando cierres abruptos en el servidor.
+   * **Solución:** Diseñamos una estrategia de "Carga Diferida" (Lazy Loading) mediante FFmpeg para extraer fotogramas individuales previamente. De esta manera, hicimos que nuestro entorno de Python únicamente cargara en la memoria principal una sola matriz de imagen a la vez.
 
-14. **Conflicto de identificadores (ID Collisions):** Se intentó que la IA buscara simultáneamente a los robots, el balón y la portería para ahorrar tiempo inyectando todos los comandos de texto de golpe. Esto sobreescribía las variables internas del modelo, devolviendo resultados vacíos o videos corruptos sin máscaras.
-    * **Solución:** Se creó un "Bucle Híbrido" para aislar completamente los flujos de datos. El script escaneaba primero a los robots, forzaba una amnesia en el modelo con `reset_session`, y luego volvía a analizar la imagen para el balón sin mezclar las peticiones matemáticas.
+**9. Saturación de RAM por peso acumulado:** A pesar de la carga diferida, el peso acumulado del historial de las imágenes seguía ahogando nuestra RAM poco a poco. En secuencias largas, nuestro sistema terminaba colapsando por el exceso de metadatos retenidos.
+   * **Solución:** Implementamos un sistema de "Procesamiento por Lotes" (Video Chunking) para dividir nuestras cargas de trabajo. Dividimos el video en carpetas aisladas de 100 a 500 imágenes que procesamos de forma independiente, purgando la RAM al terminar cada bloque.
 
-15. **Pérdida de precisión en cajas delimitadoras:** Forzar a la IA a dividir su mecanismo de atención para buscar múltiples objetos diferentes a la vez (Single Pass) degradaba la nitidez de sus mapas visuales. Esto producía cajas delimitadoras imprecisas que capturaban partes incorrectas de la imagen y arruinaban las colisiones.
-    * **Solución:** Se determinó mantener pasadas de rastreo completamente independientes para cada objeto detectado. Aunque penalizaba el tiempo de procesamiento, esto garantizaba que la IA se enfocara al 100% en un solo tipo de geometría a la vez.
+**10. Retención de memoria inactiva por el sistema operativo:** Nos dimos cuenta de que el sistema operativo Linux (utilizado en Google Colab) mantenía en su caché profunda la memoria que nuestro código en Python ya había liberado, provocándonos falsos errores de memoria llena.
+    
+* **Solución:** Utilizamos el comando de bajo nivel `libc.malloc_trim(0)` a través de la librería `ctypes`. Esto nos permitió saltar las restricciones de Python y forzar directamente al núcleo de Linux a devolvernos la memoria inactiva a la reserva central.
 
-**16. Sobrecarga por la tasa de fotogramas (FPS) y recursos limitados**
-Analizar el video a una alta tasa de fotogramas exigía un nivel de procesamiento que superaba por completo los recursos que nuestro hardware posee. Al intentar procesar tantas imágenes por segundo, el sistema se saturaba rápidamente debido a nuestra capacidad limitada y no lograba terminar el análisis de forma estable.
-* **Solución:** Optamos por reducir deliberadamente la extracción del video a solo 10 cuadros por segundo (FPS) utilizando FFmpeg para ajustarnos a la capacidad real de nuestro hardware. Aunque esto generó un movimiento menos fluido, redujo drásticamente la carga matemática y nos permitió finalizar el rastreo completo sin colapsar.
+**11. Recarga ineficiente del modelo de IA:** Inicializar nuestro pesado modelo neuronal dentro del ciclo de procesamiento por lotes nos creaba un cuello de botella masivo, ya que obligaba al disco duro a leer gigabytes de datos repetidamente.
+    
+* **Solución:** Movimos la inicialización de la IA a la cabecera de nuestro script principal. Esto nos permitió cargar el modelo en la memoria RAM una sola vez, dejándolo suspendido e inactivo para reutilizarlo instantáneamente en todos los lotes posteriores.
 
-17. **Caída del script por formato de datos (AttributeError):** De manera impredecible, las salidas de la API alternaban entre devolver datos matemáticos en formato de GPU (Tensores) y formato crudo de CPU (NumPy). Cuando el código asumía el formato incorrecto, el programa colapsaba violentamente al aplicar funciones incompatibles.
-    * **Solución:** Se añadió una validación condicional dinámica en el código utilizando `if torch.is_tensor()`. Esto aseguró que las conversiones matemáticas de formato solo se aplicaran si los datos estaban realmente alojados en la tarjeta gráfica.
+**12. Mezcla de archivos residuales:** Nuestro entorno virtual a veces conservaba imágenes de pruebas anteriores. Esto causaba que los nuevos fotogramas se mezclaran con resoluciones distintas, generando conflictos y datos corruptos para la IA.
 
-18. **Riesgo de descalificación por reglas de competencia:** La integración de sistemas avanzados de rastreo externo (como DeepSORT o ByteTrack) para agilizar el proceso de video suponía un gran riesgo. El reglamento de la "Categoría Amateur" prohibía estrictamente el uso de redes neuronales secundarias para asistir en el análisis, arriesgando la descalificación.
-    * **Solución:** Se purgaron por completo todas las redes secundarias y librerías de seguimiento externas de terceros. El proyecto se limitó a utilizar exclusivamente la inferencia nativa de SAM 3 combinada con matemáticas de álgebra básica permitidas en la categoría.
-
----
-
-## Preprocesamiento de Imagen y Estética
-
-19. **Análisis de fondos irrelevantes:** El modelo de inteligencia artificial desperdiciaba valioso tiempo de procesamiento y gigabytes de memoria gráfica analizando zonas visuales inútiles. Esto incluía mapear detalladamente las texturas de la tribuna, el público y las paredes negras fuera del área real de juego.
-    * **Solución:** Se automatizó un paso de preprocesamiento usando las herramientas algorítmicas `cv2.inRange` y `cv2.boundingRect` de OpenCV. Esto permitió detectar el verde del campo y recortar físicamente el video para aislar únicamente la cancha antes de pasárselo a la IA.
-
-20. **Fallos en detección del terreno por iluminación:** Las sombras duras o luces sobreexpuestas en diferentes zonas de la cancha hacían que el algoritmo de recorte fallara constantemente. La búsqueda de colores tradicional en formato RGB no lograba identificar correctamente la zona de juego bajo cambios bruscos de iluminación.
-    * **Solución:** Se migró el análisis de imagen inicial al espectro de color avanzado HSV, el cual aísla el pigmento base de la luminosidad. Al calibrar rangos estrictos, el algoritmo pudo identificar el color verde de la cancha sin importar la intensidad de las sombras.
-
-21. **Recortes perjudiciales en extremidades:** El algoritmo automático generaba un recorte geométrico tan exacto al borde del campo de juego que terminaba amputando visualmente partes del cuerpo de los robots. Si un robot caminaba por la línea de banda, la IA lo perdía de vista al no tener su silueta completa en el plano.
-    * **Solución:** Se aplicó una ecuación matemática simple para restar y sumar 100 píxeles a las coordenadas iniciales y finales del recorte. Esto creó un "margen de seguridad" invisible que mantuvo a los robots completamente dentro del marco.
-
-22. **Estética arruinada por filtros de oscurecimiento:** Un intento inicial para ocultar los fondos distractores fue aplicar un filtro tipo "Blackout" que pintaba de negro absoluto al público y a las paredes. Aunque esto aceleraba el proceso interno de la IA, destruía por completo el realismo y la estética del video requerida para la entrega final.
-    * **Solución:** Se abandonó el oscurecimiento destructivo de píxeles en favor de la técnica de recorte físico por coordenadas espaciales. Esto logró reducir el procesamiento computacional mientras mantenía un aspecto natural y profesional del entorno de fútbol.
+* **Solución:** Inyectamos un comando destructivo de terminal (`!rm -rf {ruta_directorio}/*`) en el bloque inicial. Al ejecutarlo antes de la extracción de FFmpeg, garantizamos un lienzo de carpetas completamente limpio.
 
 ---
 
-## Matemáticas de Colisión y Renderizado Final
+### Lógica de Rastreo e Inteligencia Artificial
 
-23. **Asignación aleatoria de IDs:** El sistema de la IA asignaba identificadores numéricos de forma aleatoria en cada ejecución de prueba (por ejemplo, numerando a los robots del equipo rojo como 17, 18 y 19). Esta irregularidad numérica rompía constantemente la lógica del código encargada de asignar colores fijos y rastrear los puntos de cada bando.
-    * **Solución:** Se normalizaron los identificadores en tiempo real mediante una fórmula matemática sencilla, restando su valor mínimo de rastreo (`tracker_id - np.min(tracker_id)`). Esto garantizó que la numeración siempre se reiniciara a 0, 1 y 2 de forma consistente.
+**13. Inexactitud de rastreadores tradicionales:** En un intento por ahorrar memoria gráfica, probamos utilizar algoritmos clásicos de seguimiento (como CSRT y MIL). Sin embargo, estos rastreadores nos fracasaron totalmente al confundir a los robots o perder el balón cuando se cruzaban rápido.
 
-24. **Falta de registro en colisiones de gol:** A nivel matemático, la máscara 2D generada para el balón a veces resultaba demasiado pequeña o ajustada al contorno. Esto causaba que no se cruzara con los suficientes píxeles del área de la portería, impidiendo que el motor de físicas registrara un gol legítimo.
-    * **Solución:** Se aplicó una operación morfológica de visión computacional expansiva llamada "Dilatación" (`cv2.dilate`). Esto engordó artificialmente la máscara del balón con píxeles extra, haciendo que el cálculo de choque fuera hipersensible y detectara el gol certeramente.
+ * **Solución:** Descartamos por completo las opciones tradicionales para priorizar la exactitud sobre la velocidad. Le otorgamos el control total a la IA (SAM 3) para evaluar cada fotograma basándose en su comprensión semántica, evitando perder el rastro durante las oclusiones.
 
-25. **Generación de telemetría sin coordenadas exactas:** El modelo SAM 3 no está diseñado para devolver puntos centrales exactos (coordenadas X, Y), sino que devuelve matrices gigantes con siluetas amorfas de los objetos. Esto hacía imposible generar de forma automatizada la telemetría de movimiento o los mapas de calor requeridos.
-    * **Solución:** Se programó una función geométrica a medida usando los métodos de array `np.mean` y `np.where`. Esto permitió calcular de manera matemática el Centro de Masa absoluto de cada silueta, convirtiéndola en un punto coordenado puntual perfecto para la telemetría.
+**14. Conflicto de identificadores (ID Collisions):** Intentamos que la IA buscara simultáneamente a los robots, el balón y la portería para ahorrar tiempo inyectando todos los comandos de golpe. Esto sobreescribía las variables internas del modelo, devolviéndonos videos corruptos o sin resultados.
 
-26. **Inestabilidad por máscaras fragmentadas:** En los cruces corporales intensos durante el partido, cuando un robot tapaba parcialmente a otro, la IA devolvía siluetas fragmentadas o cortadas a la mitad. Esto provocaba que las cajas delimitadoras clásicas temblaran violentamente o cambiaran de tamaño erráticamente en el video final.
-    * **Solución:** El cálculo matemático del "Centro de Masa" logró estabilizar de forma natural las referencias visuales. Al ser un promedio aritmético de todos los píxeles, el punto central del rastreo no saltaba repentinamente aunque la silueta del robot estuviera incompleta por la oclusión.
+* **Solución:** Creamos un "Bucle Híbrido" para aislar completamente nuestros flujos de datos. Programamos el script para escanear primero a los robots, forzar una amnesia en el modelo con `reset_session`, y luego volver a analizar la imagen para el balón sin mezclar las peticiones.
 
-27. **Caídas del script por divisiones entre cero:** Cuando el balón o un objeto salía temporalmente de la cámara, el sistema reportaba correctamente una matriz vacía. Sin embargo, intentar calcular el centroide matemático de una matriz inexistente generaba un error fatal por división entre cero (`NaN`), cerrando abruptamente el programa en plena generación del video.
-    * **Solución:** Se protegió todo el bloque de operaciones matemáticas con una compuerta condicional de validación estricta (`if len(indices_x) > 0`). Esto aseguró que la geometría de colisión solo se calculara si previamente se comprobaba la existencia de píxeles válidos en la pantalla.
-   
-28. Falsos positivos continuos en el conteo de toques de balón: Al registrar las interacciones mediante la simple intersección de máscaras binarias, el sistema sumaba decenas de toques por segundo si un robot simplemente se quedaba parado junto al balón o lo conducía, inflando el marcador de forma irreal.
-    * **Solución:** Se implementó una lógica de validación por "estado y movimiento". Primero, se estableció un umbral de desplazamiento matemático (`MOVEMENT_THRESHOLD`) para registrar un toque únicamente si el balón presentaba un movimiento físico real. Segundo, se creó un conjunto en memoria (`set`) para llevar el registro exacto de qué robot mantenía el contacto, evitando sumar puntos duplicados por un solo choque continuado.
+**15. Pérdida de precisión en cajas delimitadoras:** Al forzar a la IA a dividir su atención para buscar múltiples objetos a la vez (Single Pass), notamos que la nitidez de sus mapas visuales se degradaba, produciendo hitboxes imprecisas.
 
-29. Conteo múltiple de goles en una sola anotación: Debido a que el cálculo de solapamiento (Intersection over Union o IoU) entre el balón y la portería se evalúa cuadro por cuadro, el sistema sumaba un gol nuevo en cada fotograma mientras el balón permaneciera físicamente dentro de la red, rompiendo el marcador.
-    * **Solución:** Se implementó un control de estado temporal utilizando la variable `ball_in_rectangle_prev_frame`. Esta memoria a corto plazo permite que el código compare el estado del fotograma actual con el anterior, asegurando que el evento de "Gol" se contabilice de forma única y bloqueando sumas adicionales mientras el balón siga dentro del área.
+* **Solución:** Determinamos mantener pasadas de rastreo completamente independientes para cada objeto. Aunque esto nos penalizaba en tiempo, nos garantizó que la IA se enfocara al 100% en un solo tipo de geometría a la vez.
 
-30. Superposición y nula legibilidad de los marcadores en pantalla: Al intentar dibujar los textos de los puntajes directamente sobre el video, los colores cambiantes de la cancha y los robots camuflaban las letras. Además, al cambiar las dimensiones del video, los textos quedaban desalineados, amontonados o fuera de la pantalla.
-    * **Solución:** Se programó un sistema de visualización dinámica (Scoreboard). Para la legibilidad, se usó la función `getTextSize` para crear cajas de fondo negro opaco (`cv2.rectangle`) que se ajustan automáticamente a lo largo del texto. Para el posicionamiento, las coordenadas se calcularon algebraicamente en base a la resolución del video (usando un `y_offset` para apilar marcadores individuales sin chocar, y fracciones del ancho `w` para mantener el marcador global perfectamente centrado).
+**16. Sobrecarga por la tasa de fotogramas (FPS) y recursos limitados:** Analizar el video a su tasa original exigía un nivel de procesamiento que superaba por completo los recursos de nuestro hardware. Al intentar procesar tantas imágenes por segundo, el sistema se nos saturaba rápidamente y no lográbamos terminar el análisis.
+
+ * **Solución:** Optamos por reducir deliberadamente la extracción del video a solo 10 cuadros por segundo (FPS) utilizando FFmpeg para ajustarnos a nuestra capacidad real de hardware. Aunque esto generó un movimiento menos fluido, redujo drásticamente nuestra carga matemática y nos permitió finalizar el rastreo.
+
+**17. Caída del script por formato de datos (AttributeError):** De manera impredecible, las salidas de nuestra API alternaban entre devolvernos datos en formato de GPU (Tensores) y formato de CPU (NumPy), colapsando nuestro código al aplicar funciones incompatibles.
+
+ * **Solución:** Añadimos una validación condicional dinámica en el código utilizando `if torch.is_tensor()`. Esto nos aseguró que las conversiones matemáticas de formato solo se aplicaran si los datos estaban realmente alojados en la tarjeta gráfica.
+
+**18. Riesgo de descalificación por reglas de competencia:** Evaluamos integrar sistemas avanzados de rastreo externo (como DeepSORT), pero el reglamento de la "Categoría Amateur" nos prohibía estrictamente el uso de redes neuronales secundarias.
+
+* **Solución:** Purgamos por completo todas las redes secundarias y librerías de seguimiento externas. Limitamos nuestro proyecto a utilizar exclusivamente la inferencia nativa de SAM 3 combinada con matemáticas de álgebra básica permitidas en la categoría.
+
+---
+
+### Preprocesamiento de Imagen y Estética
+
+**19. Análisis de fondos irrelevantes:** Notamos que la inteligencia artificial desperdiciaba valioso tiempo de procesamiento mapeando detalladamente las texturas de la tribuna, el público y las paredes negras fuera de nuestra área de juego.
+
+* **Solución:** Automatizamos un paso de preprocesamiento usando las herramientas algorítmicas `cv2.inRange` y `cv2.boundingRect` de OpenCV. Esto nos permitió detectar el verde del campo y recortar físicamente el video para aislar únicamente la cancha antes de pasárselo a la IA.
+
+**20. Fallos en detección del terreno por iluminación:** Las sombras duras o luces sobreexpuestas hacían que nuestro algoritmo de recorte fallara constantemente, ya que la búsqueda de colores en formato RGB no lograba identificar la zona de juego bajo cambios bruscos de luz.
+
+* **Solución:** Migramos nuestro análisis de imagen inicial al espectro de color avanzado HSV. Al calibrar rangos estrictos, logramos que el algoritmo identificara correctamente el color verde de la cancha sin importar la intensidad de las sombras.
+
+**21. Recortes perjudiciales en extremidades:** Nuestro algoritmo automático generaba un recorte tan exacto al borde del campo que terminaba amputando visualmente partes de los robots si caminaban por la línea de banda.
+
+ * **Solución:** Aplicamos una ecuación matemática simple para restar y sumar 100 píxeles a las coordenadas del recorte. Esto nos creó un "margen de seguridad" invisible que mantuvo a los robots completamente dentro del marco.
+
+**22. Estética arruinada por filtros de oscurecimiento:** Nuestro intento inicial para ocultar los fondos fue aplicar un filtro "Blackout" que pintaba de negro al público. Aunque esto aceleraba la IA, destruía el realismo y la estética que queríamos presentar en el proyecto final.
+
+* **Solución:** Abandonamos el oscurecimiento destructivo de píxeles y optamos por la técnica de recorte físico por coordenadas espaciales. Con esto logramos reducir el procesamiento mientras manteníamos un aspecto natural y profesional.
+
+---
+
+### Matemáticas de Colisión y Renderizado Final
+
+**23. Asignación aleatoria de IDs:** El sistema nos asignaba identificadores numéricos de forma aleatoria (ej. 17, 18 y 19), lo cual nos rompía constantemente la lógica del código encargada de asignar nuestros colores fijos por equipo.
+
+* **Solución:** Normalizamos los identificadores en tiempo real mediante una fórmula sencilla, restando su valor mínimo de rastreo (`tracker_id - np.min(tracker_id)`). Esto nos garantizó que la numeración siempre se reiniciara a 0, 1 y 2 de forma consistente.
+
+**24. Falta de registro en colisiones de gol:** A nivel matemático, la máscara 2D que generábamos para el balón a veces resultaba demasiado pequeña, impidiendo que se cruzara con los píxeles de la portería y provocando que no registráramos goles legítimos.
+
+* **Solución:** Aplicamos una operación morfológica de "Dilatación" (`cv2.dilate`). Esto nos permitió engordar artificialmente la máscara del balón con píxeles extra, haciendo que nuestro cálculo de choque fuera hipersensible y detectara el gol certeramente.
+
+**25. Generación de telemetría sin coordenadas exactas:** El modelo SAM 3 nos devolvía matrices gigantes con siluetas amorfas en lugar de coordenadas (X, Y) exactas, haciéndonos imposible generar mapas de calor.
+
+* **Solución:** Programamos una función geométrica a medida usando los métodos `np.mean` y `np.where`. Esto nos permitió calcular de manera matemática el Centro de Masa absoluto de cada silueta, dándonos el punto coordenado perfecto para nuestra telemetría.
+
+**26. Inestabilidad por máscaras fragmentadas:** En los cruces corporales durante el partido, la IA nos devolvía siluetas fragmentadas, provocando que nuestras cajas delimitadoras temblaran violentamente en el video final.
+
+* **Solución:** El cálculo matemático del "Centro de Masa" que diseñamos logró estabilizar nuestras referencias visuales. Al ser un promedio aritmético, nuestro punto de rastreo no saltaba repentinamente aunque la silueta del robot estuviera ocluida.
+
+**27. Caídas del script por divisiones entre cero:** Cuando el balón salía de la cámara, el sistema reportaba una matriz vacía. Sin embargo, al intentar calcular nuestro centroide sobre algo inexistente, el programa nos arrojaba un error fatal por división entre cero (`NaN`).
+
+* **Solución:** Protegimos todo nuestro bloque de operaciones matemáticas con una compuerta condicional de validación estricta (`if len(indices_x) > 0`). Esto aseguró que la geometría solo se calculara si nosotros comprobábamos previamente la existencia de píxeles válidos.
+    
+**28. Falsos positivos continuos en el conteo de toques de balón:** Al registrar las interacciones mediante intersección de máscaras, notamos que el sistema sumaba decenas de toques si un robot simplemente se quedaba parado junto al balón, inflando nuestro marcador.
+
+* **Solución:** Implementamos una lógica de validación por "estado y movimiento". Primero, establecimos un umbral de desplazamiento matemático (`MOVEMENT_THRESHOLD`) para registrar un toque únicamente si el balón presentaba movimiento físico. Segundo, creamos un conjunto en memoria (`set`) para llevar el registro exacto de qué robot mantenía el contacto, evitando sumar puntos duplicados.
+
+**29. Conteo múltiple de goles en una sola anotación:** Debido a que nuestro cálculo de solapamiento (IoU) se evalúa cuadro por cuadro, el sistema nos sumaba un gol nuevo en cada fotograma mientras el balón permaneciera dentro de la red.
+
+* **Solución:** Implementamos un control de estado temporal utilizando la variable `ball_in_rectangle_prev_frame`. Esta memoria a corto plazo nos permitió comparar el estado del fotograma actual con el anterior, asegurando que contabilizáramos el "Gol" de forma única.
+
+**30. Superposición y nula legibilidad de los marcadores en pantalla:** Al intentar dibujar nuestros textos de puntaje sobre el video, los colores cambiantes de la cancha camuflaban las letras y desalineaban los marcadores.
+
+* **Solución:** Programamos un sistema de visualización dinámica (Scoreboard). Para la legibilidad, usamos la función `getTextSize` creando cajas de fondo negro opaco que se ajustan automáticamente al texto. Para el posicionamiento, calculamos las coordenadas algebraicamente en base a la resolución del video, asegurando que nuestro marcador global se mantuviera perfectamente centrado y sin chocar.
    
 
 # Requisitos de Hardware y Software
@@ -168,11 +206,19 @@ Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
 1. Clonar el repositorio:
    ```bash git
    clone  https://colab.research.google.com/github/Gerardo-MauricioGP/Proyecto_SAM3/blob/main/Proyecto_SAM3_V3_0.ipynb
- 
+   ```
  cd futbotmx-sam3
+
+ **Ejecución del Entorno:**
+   * Sube o abre el archivo `Proyecto_SAM3_V3_0.ipynb` en Google Colab.
+   * Ve a `Entorno de ejecución` > `Cambiar tipo de entorno de ejecución` y asegúrate de seleccionar **GPU (T4)**.
+   * Ejecuta las celdas en orden secuencial. El script te pedirá subir el video de entrada y automáticamente comenzará el preprocesamiento, análisis e inferencia.
 
 
 # Tech Stack:
 ![Python](https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=ffdd54) ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=flat&logo=numpy&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=flat&logo=github&logoColor=white)
+
+
+
 
 
