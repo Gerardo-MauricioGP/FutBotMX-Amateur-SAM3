@@ -230,10 +230,10 @@ Este proyecto fue desarrollado y optimizado para ejecutarse en la nube.
 
 Para replicar nuestro entorno y obtener los resultados, sigue estos pasos:
 
-1. Clonar el repositorio:
-   ```bash git
-   clone  https://colab.research.google.com/github/Gerardo-MauricioGP/Proyecto_SAM3/blob/main/Proyecto_SAM3_V3_0.ipynb
-   ```
+1. Apertura directa
+Puedes abrir y ejecutar nuestro proyecto directamente en la nube sin descargar nada haciendo clic aquí:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Gerardo-MauricioGP/FutBotMX-Amateur-SAM3/blob/main/Proyecto_SAM3_V3_0.ipynb)
  cd futbotmx-sam3
 
 **Ejecución Automática en la Nube:**
