@@ -64,6 +64,12 @@ Además de los mapas de calor, implementamos un **Radar de telemetría en tiempo
 
 https://github.com/user-attachments/assets/5adf93ff-818e-44f9-8df7-4081ee024a8c
 
+## Demostración Completa del Sistema (2 Minutos)
+
+<div align="center">
+  <video src="AQUÍ_PONES_EL_LINK_DE_GITHUB_DE_TU_VIDEO_DE_2_MINUTOS" width="600" controls></video>
+</div>
+
 ## Demostración en Instagram
 
 Para ver el sistema en acción con un formato más dinámico y rápido, puedes revisar nuestro clip donde mostramos el rendimiento de la IA y el seguimiento de los robots en tiempo real:
