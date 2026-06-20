@@ -67,7 +67,7 @@ https://github.com/user-attachments/assets/5adf93ff-818e-44f9-8df7-4081ee024a8c
 ## Demostración Completa del Sistema (2 Minutos)
 
 <div align="center">
-  <video src="AQUÍ_PONES_EL_LINK_DE_GITHUB_DE_TU_VIDEO_DE_2_MINUTOS" width="600" controls></video>
+  <video src="https://github.com/Gerardo-MauricioGP/FutBotMX-Amateur-SAM3/blob/main/assets/Demostraci%C3%B3n%20Completa%20del%20Sistema.mp4" width="600" controls></video>
 </div>
 
 ## Demostración en Instagram
